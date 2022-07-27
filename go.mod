@@ -1,4 +1,4 @@
-module filepond
+module github.com/luhuaei/filepond
 
 go 1.18
 
