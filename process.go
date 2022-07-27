@@ -48,6 +48,9 @@ func (fp *FilePond) Register(g *gin.RouterGroup) {
 	g.DELETE("", fp.Revert)
 	g.PATCH("", fp.ProcessChunksPatch)
 	g.HEAD("", fp.ProcessChunksHead)
+
+	// custom api
+	g.DELETE("/:serverId", fp.Remove)
 }
 
 func (fp *FilePond) Post(c *gin.Context) {
@@ -241,15 +244,49 @@ func (fp *FilePond) ProcessChunksHead(c *gin.Context) {
 // Restore 是表单没有提交，但上传已经完成，资源存储在 tempDir 中
 // 1. FilePond requests restore of file with id 12345 using a GET request
 // 2. server returns a file object with header Content-Disposition: inline; filename="my-file.jpg"
-func (fp *FilePond) Restore(c *gin.Context) {}
+func (fp *FilePond) Restore(c *gin.Context) {
+	id := c.Query("restore")
+	fp.findFile(fp.tempDir, id, c)
+}
 
 // Load 是表单已经提交，资源被移动到最终的存储位置
 // 1. FilePond requests restore of file with id 12345 or a file name using a GET request
 // 2. server returns a file object with header Content-Disposition: inline; filename="my-file.jpg"
-func (fp *FilePond) Load(c *gin.Context) {}
+func (fp *FilePond) Load(c *gin.Context) {
+	id := c.Query("load")
+	fp.findFile(fp.saveDir, id, c)
+}
+
+func (fp *FilePond) findFile(dir string, id string, c *gin.Context) {
+	entries, err := os.ReadDir(filepath.Join(dir, id))
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+	if len(entries) != 1 {
+		c.AbortWithError(http.StatusBadRequest, errors.New("file is bad"))
+		return
+	}
+
+	name := entries[0].Name()
+	entry := filepath.Join(dir, id, name)
+	c.Writer.Header().Set("Content-Disposition", `inline; filename="`+name+`"`)
+	c.File(entry)
+}
 
 // Fetch 获取资源
 func (fp *FilePond) Fetch(c *gin.Context) {}
 
 // Remove 为一个自定义的函数，参数不固定
-func (fp *FilePond) Remove(c *gin.Context) {}
+func (fp *FilePond) Remove(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("serverId"))
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("id is invalid"))
+		return
+	}
+	err = os.RemoveAll(filepath.Join(fp.saveDir, id.String()))
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+}
