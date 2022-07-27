@@ -25,11 +25,12 @@
       labelButtonUndoItemProcessing="撤销"
       labelButtonRetryItemProcessing="重试"
       labelButtonProcessItem="上传"
-      credits="false"
       :allow-remove="true"
       :allow-revert="true"
       :allow-replace="true"
-      :allow-multiple="false"
+      :allow-multiple="true"
+      :chunk-uploads="true"
+      :chunk-size="chunkSize"
       :server="serverOptions"
       v-bind:files="uploadFiles"
       :onprocessfile="onProcessFile"
@@ -39,6 +40,7 @@
 </template>
 
 <script>
+// eslint-disable-next-line no-unused-vars
 function fileToLocalMetadata(file) {
   return {
     source: file.serverId,
@@ -50,22 +52,11 @@ function fileToLocalMetadata(file) {
 }
 
 export default {
-  model: {
-    prop: "originFile",
-    event: "updateFile",
-  },
-  props: {
-    originFile: Object,
-  },
-  mounted() {
-    if (this.originFile?.source) {
-      console.log("file", this.originFile);
-      this.uploadFiles.push(this.originFile);
-    }
-  },
+  mounted() {},
   data() {
     return {
       uploadFiles: [],
+      chunkSize: 1024 * 1024 * 2,
     };
   },
   computed: {
@@ -87,8 +78,7 @@ export default {
         console.error(error);
         return;
       }
-      // only one file
-      this.$emit("updateFile", fileToLocalMetadata(file));
+      console.log("upload file", file);
     },
     onRemoveFile(error, file) {
       if (error) {
@@ -96,7 +86,6 @@ export default {
         return;
       }
       console.log("remove file", file);
-      this.$emit("updateFile", {});
     },
   },
 };

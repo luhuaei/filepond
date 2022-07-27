@@ -18,9 +18,7 @@ func main() {
 	r := gin.Default()
 	r.Use(cors)
 
-	g := r.Group("")
-	g.POST("/filepond", fp.Process)
-	g.DELETE("/filepond", fp.Revert)
+	fp.Register(r.Group("/filepond"))
 
 	err = r.Run("127.0.0.1:8888")
 	if err != nil {
@@ -30,9 +28,10 @@ func main() {
 
 func cors(c *gin.Context) {
 	c.Writer.Header().Add("Access-Control-Allow-Credentials", "true")
-	c.Writer.Header().Add("Access-Control-Allow-Headers", "Accept, X-Access-Token, X-Application-Name, X-Request-Sent-Time")
-	c.Writer.Header().Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE")
+	c.Writer.Header().Add("Access-Control-Allow-Headers", "*")
+	c.Writer.Header().Add("Access-Control-Allow-Methods", "*")
 	c.Writer.Header().Add("Access-Control-Allow-Origin", "*")
+	c.Writer.Header().Add("Access-Control-Expose-Headers", "Upload-Offset")
 	if c.Request.Method == "OPTIONS" {
 		c.Status(http.StatusOK)
 		return
